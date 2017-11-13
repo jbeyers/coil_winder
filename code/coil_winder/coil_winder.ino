@@ -6,7 +6,7 @@ const int pot_in_an = 14;
 const int pot_deadband = 20;
 const unsigned long turns_to_do = 750ul;
 const unsigned long steps_per_turn = 200ul;
-const unsigned long steps_to_do = turns_to_do * steps_to_do;
+const unsigned long steps_to_do = turns_to_do * steps_per_turn;
 
 unsigned long start_millis;
 int start_latch;
@@ -65,7 +65,7 @@ void loop() {
         speed = speed + 10;
         step_delay = 1600 + (60000/speed);
         can_turn = true;
-        if ((steps_done >= steps_to_do) && forward) {
+        if ((steps_done == steps_to_do) && forward) {
           can_turn = false;
         }
         if (steps_done == 0 && !forward) {
@@ -83,15 +83,6 @@ void loop() {
             }
         }
     }
-    // show the turns completed every second while running.
-    // This could be in an interrupt, but meh
-    if (millis() > start_millis + 1000ul) {
-      turns_done = steps_done/steps_per_turn;
-      Serial.print("turns = ");
-      Serial.print(turns_done);
-      Serial.println();
-      start_millis = start_millis + 1000ul;
-    }
   } else {
     // Reset the values for the counters and centering
     digitalWrite(disable_out, HIGH);
@@ -102,6 +93,15 @@ void loop() {
     pot_min = min(pot_value, pot_min);
     // Set the center point. Note that this will be center when you enable the counter.
     pot_center = pot_value;
+  }
+  // show the turns completed every second while running.
+  // This could be in an interrupt, but meh
+  if (millis() > start_millis + 1000ul) {
+    turns_done = steps_done/steps_per_turn;
+    Serial.print("turns = ");
+    Serial.print(turns_done);
+    Serial.println();
+    start_millis = start_millis + 1000ul;
   }
 }
 
