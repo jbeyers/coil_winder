@@ -36,11 +36,12 @@ void setup() {
   pinMode(disable_out, OUTPUT);
   digitalWrite(disable_out, LOW);
   // Initialise values
-  pot_max = 0;
-  pot_min = 1024;
+  pot_max = 678;
+  pot_min = 370;
   start_millis = millis();
   speed = 0;
   allow_run = false;
+  pot_center = 513;
 
   // initialize serial communications at 9600 bps:
   Serial.begin(9600);
@@ -51,20 +52,19 @@ void loop() {
     // Active running.
     digitalWrite(disable_out, LOW);
     // Check if the pot is requesting a speed, and scale it
-    // TODO: Use the Map function to do this.
     pot_value = analogRead(pot_in_an);
     // Continuously ensure we are not going out of bounds
-    pot_max = max(pot_value, pot_max);
-    pot_min = min(pot_value, pot_min);
+    //pot_max = max(pot_value, pot_max);
+    //pot_min = min(pot_value, pot_min);
     can_turn = true;
     if (pot_value > pot_center + pot_deadband) {
       forward = true;
       digitalWrite(dir_out, LOW);
-      speed = map(pot_value, pot_center + pot_deadband, pot_max, 0, 13);
+      speed = constrain(map(pot_value, pot_center + pot_deadband, pot_max, 0, 13), 0, 13);
     } else if (pot_value < pot_center - pot_deadband) {
       forward = false;
       digitalWrite(dir_out, HIGH);
-      speed = map(pot_value, pot_center - pot_deadband, pot_min, 0, 13);
+      speed = constrain(map(pot_value, pot_center - pot_deadband, pot_min, 0, 13), 0, 13);
     } else {
       can_turn = false;
     }
@@ -105,10 +105,10 @@ void loop() {
     steps_done = 0ul;
     // Get the min and max values for the speed control
     pot_value = analogRead(pot_in_an);
-    pot_max = max(pot_value, pot_max);
-    pot_min = min(pot_value, pot_min);
+    //pot_max = max(pot_value, pot_max);
+    //pot_min = min(pot_value, pot_min);
     // Set the center point. Note that this will be center when you enable the counter.
-    pot_center = pot_value;
+    //pot_center = pot_value;
     previous_micros = micros();
     allow_run = true;
   }
@@ -118,6 +118,8 @@ void loop() {
     turns_done = steps_done/steps_per_turn;
     Serial.print("turns = ");
     Serial.print(turns_done);
+    Serial.print(" pot = ");
+    Serial.print(pot_value);
     Serial.println();
     start_millis = start_millis + 1000ul;
   }
