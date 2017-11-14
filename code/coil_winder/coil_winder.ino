@@ -10,7 +10,6 @@ const unsigned long steps_to_do = turns_to_do * steps_per_turn;
 const unsigned int delay_lookup = { 16000u, 12500u, 10000u, 8000u, 6300u, 5000u, 4000u, 3150u, 2500u, 2000u, 1600u, 1250u, 1000u, 800u, 630u, 630u }
 
 unsigned long start_millis;
-int start_latch;
 unsigned long steps_done;
 unsigned long turns_done;
 int pot_center;
@@ -18,8 +17,8 @@ int pot_min;
 int pot_max;
 int pot_value;
 int speed;
-int range;
 unsigned int step_delay;
+unsigned int cycle_time;
 bool forward;
 bool can_turn;
 
@@ -66,24 +65,35 @@ void loop() {
     }
     step_delay = delay_lookup[speed];
 
+    // Stops at the step counts
     if ((steps_done == steps_to_do) && forward) {
       can_turn = false;
     }
     if (steps_done == 0 && !forward) {
       can_turn = false;
     }
+
     // See where we are on the timing cycle.
-    if (can_turn) {
-        digitalWrite(step_out, HIGH);
-        delayMicroseconds(step_delay);
-        digitalWrite(step_out, LOW);
-        delayMicroseconds(step_delay);
-        if (forward) {
-          steps_done++;
-        } else {
-          steps_done--;
-        }
+    // Note: We assume that the cycle time is within unsigned int range
+    current_micros = micros();
+    if (current_micros >= previous_micros) {
+      cycle_time = current_micros - previous_micros;
+    } else {
+      cycle_time = 4294967295 - previous_micros + current_micros;
     }
+
+    if (can_turn) {
+      delayMicroseconds(step_delay - cycle_time);
+      digitalWrite(step_out, HIGH);
+      delayMicroseconds(step_delay);
+      digitalWrite(step_out, LOW);
+      if (forward) {
+        steps_done++;
+      } else {
+        steps_done--;
+      }
+    }
+    previous_micros = micros();
   } else {
     // Reset the values for the counters and centering
     digitalWrite(disable_out, HIGH);
@@ -94,6 +104,7 @@ void loop() {
     pot_min = min(pot_value, pot_min);
     // Set the center point. Note that this will be center when you enable the counter.
     pot_center = pot_value;
+    previous_micros = micros();
   }
   // show the turns completed every second while running.
   // This could be in an interrupt, but meh
