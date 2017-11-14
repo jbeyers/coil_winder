@@ -7,11 +7,13 @@ const int pot_deadband = 20;
 const unsigned long turns_to_do = 750ul;
 const unsigned long steps_per_turn = 200ul;
 const unsigned long steps_to_do = turns_to_do * steps_per_turn;
-const unsigned int delay_lookup = { 16000u, 12500u, 10000u, 8000u, 6300u, 5000u, 4000u, 3150u, 2500u, 2000u, 1600u, 1250u, 1000u, 800u, 630u, 630u }
+const unsigned int delay_lookup[] = { 16000u, 12500u, 10000u, 8000u, 6300u, 5000u, 4000u, 3150u, 2500u, 2000u, 1600u, 1250u, 1000u, 800u, 630u, 630u };
 
 unsigned long start_millis;
 unsigned long steps_done;
 unsigned long turns_done;
+unsigned long current_micros;
+unsigned long previous_micros;
 int pot_center;
 int pot_min;
 int pot_max;
@@ -32,6 +34,7 @@ void setup() {
   pinMode(step_out, OUTPUT);
   pinMode(dir_out, OUTPUT);
   pinMode(disable_out, OUTPUT);
+  digitalWrite(disable_out, LOW);
   // Initialise values
   pot_max = 0;
   pot_min = 1024;
