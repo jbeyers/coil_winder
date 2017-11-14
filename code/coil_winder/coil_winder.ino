@@ -21,6 +21,7 @@ unsigned int step_delay;
 unsigned int cycle_time;
 bool forward;
 bool can_turn;
+bool allow_run;
 
 void setup() { 
   // Start toggle.
@@ -36,13 +37,14 @@ void setup() {
   pot_min = 1024;
   start_millis = millis();
   speed = 0;
+  allow_run = false;
 
   // initialize serial communications at 9600 bps:
   Serial.begin(9600);
 } 
 
 void loop() { 
-  if (digitalRead(start_in) == LOW) {
+  if ((digitalRead(start_in) == LOW) && allow_run) {
     // Active running.
     digitalWrite(disable_out, LOW);
     // Check if the pot is requesting a speed, and scale it
@@ -105,6 +107,7 @@ void loop() {
     // Set the center point. Note that this will be center when you enable the counter.
     pot_center = pot_value;
     previous_micros = micros();
+    allow_run = true;
   }
   // show the turns completed every second while running.
   // This could be in an interrupt, but meh
