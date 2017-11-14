@@ -7,6 +7,7 @@ const int pot_deadband = 20;
 const unsigned long turns_to_do = 750ul;
 const unsigned long steps_per_turn = 200ul;
 const unsigned long steps_to_do = turns_to_do * steps_per_turn;
+const unsigned int delay_lookup = { 16000u, 12500u, 10000u, 8000u, 6300u, 5000u, 4000u, 3150u, 2500u, 2000u, 1600u, 1250u, 1000u, 800u, 630u, 630u }
 
 unsigned long start_millis;
 int start_latch;
@@ -35,6 +36,7 @@ void setup() {
   pot_max = 0;
   pot_min = 1024;
   start_millis = millis();
+  speed = 0;
 
   // initialize serial communications at 9600 bps:
   Serial.begin(9600);
@@ -47,40 +49,39 @@ void loop() {
     // Check if the pot is requesting a speed, and scale it
     // TODO: Use the Map function to do this.
     pot_value = analogRead(pot_in_an);
+    // Continuously ensure we are not going out of bounds
     pot_max = max(pot_value, pot_max);
     pot_min = min(pot_value, pot_min);
-    speed = pot_value - pot_center;
-    if (abs(speed) > pot_deadband) {
-        if ( speed < 0 ) {
-          digitalWrite(dir_out, HIGH);
-          forward = false;
-          range = pot_center - pot_deadband - pot_min;
-          speed = 300*(pot_center - pot_value - pot_deadband)/range;
+    can_turn = true;
+    if (pot_value > pot_center + pot_deadband) {
+      forward = true;
+      digitalWrite(dir_out, LOW);
+      speed = map(pot_value, pot_center + pot_deadband, pot_max, 0, 15);
+    } else if (pot_value < pot_center - pot_deadband) {
+      forward = false;
+      digitalWrite(dir_out, HIGH);
+      speed = map(pot_value, pot_center - pot_deadband, pot_min, 0, 15);
+    } else {
+      can_turn = false;
+    }
+    step_delay = delay_lookup[speed];
+
+    if ((steps_done == steps_to_do) && forward) {
+      can_turn = false;
+    }
+    if (steps_done == 0 && !forward) {
+      can_turn = false;
+    }
+    // See where we are on the timing cycle.
+    if (can_turn) {
+        digitalWrite(step_out, HIGH);
+        delayMicroseconds(step_delay);
+        digitalWrite(step_out, LOW);
+        delayMicroseconds(step_delay);
+        if (forward) {
+          steps_done++;
         } else {
-          digitalWrite(dir_out, LOW);
-          forward = true;
-          range = pot_max - pot_center - pot_deadband;
-          speed = 300*(pot_value - pot_center - pot_deadband)/range;
-        }
-        speed = speed + 10;
-        step_delay = 1600 + (60000/speed);
-        can_turn = true;
-        if ((steps_done == steps_to_do) && forward) {
-          can_turn = false;
-        }
-        if (steps_done == 0 && !forward) {
-          can_turn = false;
-        }
-        if (can_turn) {
-            digitalWrite(step_out, HIGH);
-            delayMicroseconds(step_delay);
-            digitalWrite(step_out, LOW);
-            delayMicroseconds(step_delay);
-            if (forward) {
-              steps_done++;
-            } else {
-              steps_done--;
-            }
+          steps_done--;
         }
     }
   } else {
@@ -104,4 +105,3 @@ void loop() {
     start_millis = start_millis + 1000ul;
   }
 }
-
